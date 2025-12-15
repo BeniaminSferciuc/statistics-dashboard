@@ -1,6 +1,32 @@
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 
+const REGEX_PATTERNS = {
+  // Spatii
+  whitespace: /\s+/g,
+
+  // An: 1900 - 2099
+  year: /\b(19\d{2}|20\d{2})\b/,
+
+  // Kilometri: 100.000 km, 100 000 km, 100000km
+  mileage: /(\d[\d\s.]*)\s*(?:km|kilometri)/i,
+
+  // Putere: 150 CP, 150 hp, 150 cai
+  power: /(\d{2,4})\s*(?:cp|hp|cai|kw)/i,
+
+  // Motor: 1995 cm3, 2.0 l, 2000 cc
+  engine: /(\d{3,5}\s*(?:cm3|cmc|cc)|\d(?:\.\d)?\s*(?:l|litri))/i,
+
+  // Combustibil: cuvinte cheie
+  fuel: /(benzina|diesel|motorina|hibrid|hybrid|electric|gpl)/i,
+
+  // Transmisie: automata sau manuala
+  transmission: /(automata|manuala|robotizata|dsg)/i,
+
+  // Telefon: +40, 07xx
+  phone: /(?:\+40|0)\s?7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}/g,
+};
+
 export interface CarSpecs {
   model: string;
   power: string;
@@ -23,9 +49,8 @@ export interface CarData {
   phoneNumber: string;
 }
 
-// Helper pentru a curăța textul de spații inutile
 function cleanText(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  return text.replace(REGEX_PATTERNS.whitespace, " ").trim();
 }
 
 export async function POST(request: Request) {
@@ -39,7 +64,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Folosim un User-Agent real pentru a nu fi blocați de OLX
     const response = await fetch(url, {
       headers: {
         "User-Agent":
@@ -54,36 +78,28 @@ export async function POST(request: Request) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // --- 1. TITLU, PREȚ, DESCRIERE ---
-    // Meta tag-urile sunt cele mai sigure surse (nu se schimbă des)
     const metaTitle = $('meta[property="og:title"]').attr("content") || "";
     const title =
       metaTitle.split(" - ")[0] ||
       $("h1").text().trim() ||
       "Titlu indisponibil";
 
-    // Descriere: combinăm meta description cu textul din div-ul principal
     const metaDesc = $('meta[property="og:description"]').attr("content") || "";
     const descriptionDiv =
       $('div[data-cy="ad_description"] div').text() ||
       $('div[class*="css-bgzo2k"]').text();
     const description = cleanText(descriptionDiv || metaDesc);
 
-    // Preț: Căutăm containerul specific de preț
     let price = "Preț nespecificat";
     const priceElement = $('[data-testid="ad-price-container"] h3').text();
     if (priceElement) {
       price = cleanText(priceElement);
     }
 
-    // --- 2. LOCAȚIE ---
-    // OLX pune locația de obicei sub titlu sau în sidebar. Căutăm elemente care conțin textul specific locațiilor (cu virgulă)
-    let location = "";
-    // Încercăm să găsim un paragraf care conține o locație (ex: "Bucuresti, Sector 1")
+    let location = "România";
     const locationDiv = $("p")
       .filter((_, el) => {
         const t = $(el).text().trim();
-        // Verificare simplă: are virgulă și pare a fi o locație (nu foarte lungă)
         return (
           t.includes(",") &&
           t.length < 50 &&
@@ -95,12 +111,8 @@ export async function POST(request: Request) {
 
     if (locationDiv.length) {
       location = locationDiv.text().trim();
-    } else {
-      // Fallback: luăm din zona de "Locatie" sidebar dacă există
-      location = "România";
     }
 
-    // --- 3. SPECIFICAȚII TEHNICE (Model, Putere, etc.) ---
     const specs: CarSpecs = {
       model: "",
       power: "",
@@ -113,15 +125,11 @@ export async function POST(request: Request) {
       transmission: "",
     };
 
-    // Strategie Robustă: Iterăm prin toate elementele de listă (li) sau paragrafe (p) din zona de detalii
-    // și căutăm cheile specifice ("Model", "Putere", etc.)
     const allListItems = $('ul li, div[class*="css-"] p');
 
     allListItems.each((_, el) => {
       const text = $(el).text();
       const lowerText = text.toLowerCase();
-
-      // Funcție helper pentru a extrage valoarea după ":" sau curățând numele cheii
       const extractVal = (key: string) =>
         cleanText(text.replace(new RegExp(key + ":?", "i"), ""));
 
@@ -145,38 +153,69 @@ export async function POST(request: Request) {
         specs.transmission = extractVal("cutie de viteze");
     });
 
-    // Fallback Regex pentru specificații critice (An, KM) dacă nu au fost găsite în listă
     const bodyText = $("body").text();
-    if (!specs.year) {
-      const yearMatch = bodyText.match(/\b(19\d{2}|20\d{2})\b/);
-      if (yearMatch) specs.year = yearMatch[0];
-    }
-    if (!specs.mileage) {
-      const kmMatch = bodyText.match(/(\d+[\s.]?\d*)\s*km/i);
-      if (kmMatch) specs.mileage = kmMatch[0];
+    const fullTextSearch = title + " " + description + " " + bodyText;
+
+    // 1. AN
+    if (!specs.year || specs.year.length < 4) {
+      const match = fullTextSearch.match(REGEX_PATTERNS.year);
+      if (match) specs.year = match[0];
     }
 
-    // --- 4. TELEFON ---
-    // Căutăm în descriere folosind Regex (OLX ascunde numărul din header în spatele unui buton)
+    // 2. RULAJ / KM
+    if (!specs.mileage) {
+      const match = fullTextSearch.match(REGEX_PATTERNS.mileage);
+      if (match) specs.mileage = match[0]; // ex: "200.000 km"
+    }
+
+    // 3. PUTERE
+    if (!specs.power) {
+      const match = fullTextSearch.match(REGEX_PATTERNS.power);
+      if (match) specs.power = match[0]; // ex: "150 CP"
+    }
+
+    // 4. MOTORIZARE
+    if (!specs.engine) {
+      const match = fullTextSearch.match(REGEX_PATTERNS.engine);
+      if (match) specs.engine = match[0]; // ex: "1995 cm3"
+    }
+
+    // 5. COMBUSTIBIL
+    if (!specs.fuel) {
+      const match = fullTextSearch.match(REGEX_PATTERNS.fuel);
+      if (match) {
+        // Capitalizăm prima literă
+        const f = match[0].toLowerCase();
+        specs.fuel = f.charAt(0).toUpperCase() + f.slice(1);
+      }
+    }
+
+    // 6. TRANSMISIE
+    if (!specs.transmission) {
+      const match = fullTextSearch.match(REGEX_PATTERNS.transmission);
+      if (match) {
+        const t = match[0].toLowerCase();
+        specs.transmission = t.charAt(0).toUpperCase() + t.slice(1);
+      }
+    }
+
+    // 7. TELEFON
     let phoneNumber = "";
-    const phoneRegex = /(?:\+40|0)\s?7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}/g;
-    const phoneMatches = description.match(phoneRegex);
+    const phoneMatches = description.match(REGEX_PATTERNS.phone);
     if (phoneMatches) {
       phoneNumber = phoneMatches[0];
     }
 
-    // --- 5. IMAGINI ---
     const images: string[] = [];
     $("img").each((_, el) => {
       const src = $(el).attr("src");
-      // Filtrăm doar imaginile reale din CDN-ul OLX
       if (
         src &&
         src.includes("olxcdn.com") &&
         !src.includes("user_image") &&
         !src.includes("icon")
       ) {
-        images.push(src.split(";")[0]); // Luăm rezoluția maximă
+        images.push(src.split(";")[0]);
       }
     });
 
@@ -186,7 +225,7 @@ export async function POST(request: Request) {
       location,
       specs,
       description,
-      images: [...new Set(images)].slice(0, 8), // Maxim 8 imagini unice
+      images: [...new Set(images)].slice(0, 8),
       phoneNumber: phoneNumber || "Doar pe OLX (vezi cont)",
     };
 

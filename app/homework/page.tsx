@@ -5,21 +5,24 @@ import {
   Search,
   Calendar,
   Gauge,
-  Fuel,
   MapPin,
   Settings2,
   Phone,
-  ArrowRight,
+  ArrowUpRight,
   Car,
-  Palette,
-  Component,
   Zap,
-  RefreshCcw,
-  AlertTriangle,
+  RefreshCw,
+  Plus,
   Loader2,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  Cog,
+  Droplets,
 } from "lucide-react";
+import React from "react";
 
-// Definim interfețele identic cu backend-ul
 interface CarSpecs {
   model: string;
   power: string;
@@ -42,19 +45,24 @@ interface CarData {
   phoneNumber: string;
 }
 
-export default function Home() {
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<CarData | null>(null);
-  const [error, setError] = useState("");
+export default function AppleDashboard() {
+  const [urlA, setUrlA] = useState("");
+  const [urlB, setUrlB] = useState("");
+  const [loadingA, setLoadingA] = useState(false);
+  const [loadingB, setLoadingB] = useState(false);
+  const [dataA, setDataA] = useState<CarData | null>(null);
+  const [dataB, setDataB] = useState<CarData | null>(null);
+  const [errorA, setErrorA] = useState("");
+  const [errorB, setErrorB] = useState("");
 
-  const handleScrape = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchCar = async (url: string, side: "A" | "B") => {
     if (!url) return;
+    const setLoading = side === "A" ? setLoadingA : setLoadingB;
+    const setData = side === "A" ? setDataA : setDataB;
+    const setError = side === "A" ? setErrorA : setErrorB;
 
     setLoading(true);
     setError("");
-    setData(null);
 
     try {
       const res = await fetch("/api/scrape-olx", {
@@ -62,260 +70,595 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-
       const json = await res.json();
-      if (!res.ok)
-        throw new Error(json.error || "Eroare la extragerea datelor");
+      if (!res.ok) throw new Error(json.error || "Failed.");
       setData(json);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "A apărut o eroare neașteptată"
-      );
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setData(null);
-    setUrl("");
+    setDataA(null);
+    setDataB(null);
+    setUrlA("");
+    setUrlB("");
+    setErrorA("");
+    setErrorB("");
   };
 
+  const hasData = dataA || dataB;
+
   return (
-    <main className="min-h-screen relative flex flex-col items-center justify-center p-4 md:p-8 font-sans overflow-hidden">
-      {/* --- BACKGROUND IMAGE COOL --- */}
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage:
-            'url("https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=2583&auto=format&fit=crop")',
-        }}
-      >
-        {/* Overlay Dark Gradient pentru contrast */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-slate-900/80 backdrop-blur-sm" />
-      </div>
-
-      <div className="w-full max-w-6xl z-10 relative">
-        {/* --- STARE DE CĂUTARE (Vizibil doar când nu avem date) --- */}
-        {!data && (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in zoom-in duration-500">
-            <h1 className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-6 drop-shadow-2xl text-center">
-              OLX Scraper Pro
-            </h1>
-            <p className="text-slate-300 text-lg mb-10 text-center max-w-2xl font-light">
-              Introdu link-ul anunțului și extrage automat specificațiile
-              tehnice, prețul real și detaliile ascunse.
-            </p>
-
-            <form
-              onSubmit={handleScrape}
-              className="w-full max-w-2xl relative group"
-            >
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-
-              <div className="relative flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-2 shadow-2xl">
-                <div className="pl-6 pr-2 text-white/70">
-                  <Search className="w-6 h-6" />
-                </div>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://www.olx.ro/d/oferta/..."
-                  className="w-full bg-transparent border-none outline-none text-white placeholder-white/40 text-lg py-3"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-white text-black hover:bg-slate-200 px-8 py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin w-5 h-5" />
-                  ) : (
-                    "Extrage"
-                  )}
-                </button>
-              </div>
-            </form>
-
-            {error && (
-              <div className="mt-8 flex items-center gap-3 bg-red-500/20 backdrop-blur-md border border-red-500/50 px-6 py-3 rounded-xl text-red-200 animate-in slide-in-from-bottom-2">
-                <AlertTriangle className="w-5 h-5" />
-                {error}
-              </div>
-            )}
+    <div className="min-h-screen bg-[#F5f5f7] text-[#1D1D1F] antialiased">
+      <header className="sticky top-0 z-50 bg-[#FBFBFD]/80 backdrop-blur-2xl border-b border-black/5">
+        <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-linear-to-br from-[#1D1D1F] to-[#424245] text-white rounded-[10px] flex items-center justify-center font-semibold text-[11px] tracking-tight shadow-sm">
+              CP
+            </div>
+            <span className="font-semibold text-[15px] tracking-[-0.01em]">
+              Comparator Pro
+            </span>
           </div>
-        )}
 
-        {/* --- REZULTATE (Vizibil doar când avem date) --- */}
-        {data && (
-          <div className="animate-in slide-in-from-bottom-10 duration-700 pb-10">
-            {/* Buton Reset */}
-            <button
-              onClick={handleReset}
-              className="mb-6 flex items-center gap-2 text-white/70 hover:text-white transition-colors bg-black/40 px-4 py-2 rounded-full backdrop-blur-md border border-white/10 text-sm"
-            >
-              <RefreshCcw className="w-4 h-4" /> Caută altă mașină
-            </button>
-
-            {/* Card Principal - Intense Glass Effect */}
-            <div className="bg-white/10 backdrop-blur-[40px] border border-white/20 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden text-white">
-              {/* Header Card */}
-              <div className="p-8 md:p-12 border-b border-white/10 flex flex-col md:flex-row justify-between items-start gap-6 bg-gradient-to-r from-white/5 to-transparent">
-                <div className="space-y-2 max-w-3xl">
-                  <h2 className="text-3xl md:text-5xl font-bold leading-tight tracking-tight">
-                    {data.title}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-4 text-white/60 text-sm md:text-base">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-blue-400" />
-                      {data.location || "Locație necunoscută"}
-                    </div>
-                    {data.phoneNumber && (
-                      <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30 text-green-300">
-                        <Phone className="w-3 h-3" />
-                        {data.phoneNumber}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end">
-                  <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">
-                    Preț Cerut
-                  </p>
-                  <div className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 to-yellow-600 drop-shadow-lg">
-                    {data.price}
-                  </div>
-                </div>
-              </div>
-
-              {/* Galerie Imagini (Top 4) */}
-              {data.images.length > 0 && (
-                <div className="grid grid-cols-4 gap-1 h-64 md:h-96 w-full">
-                  {data.images.slice(0, 4).map((img, i) => (
-                    <div
-                      key={i}
-                      className={`relative overflow-hidden group ${i === 0 ? "col-span-2 row-span-2" : "col-span-2 md:col-span-1"}`}
-                    >
-                      <img
-                        src={img}
-                        alt={`Car ${i}`}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Grid Specificații - Căsuțele cerute */}
-              <div className="p-8 md:p-12">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <Settings2 className="w-6 h-6 text-blue-400" /> Specificații
-                  Tehnice
-                </h3>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  <SpecBox
-                    icon={<Car />}
-                    label="Model"
-                    value={data.specs.model}
-                  />
-                  <SpecBox
-                    icon={<Zap />}
-                    label="Putere"
-                    value={data.specs.power}
-                  />
-                  <SpecBox
-                    icon={<Component />}
-                    label="Caroserie"
-                    value={data.specs.bodyType}
-                  />
-                  <SpecBox
-                    icon={<Palette />}
-                    label="Culoare"
-                    value={data.specs.color}
-                  />
-                  <SpecBox
-                    icon={<Calendar />}
-                    label="An Fabricație"
-                    value={data.specs.year}
-                  />
-                  <SpecBox
-                    icon={<Gauge />}
-                    label="Rulaj"
-                    value={data.specs.mileage}
-                  />
-                  <SpecBox
-                    icon={<Fuel />}
-                    label="Combustibil"
-                    value={data.specs.fuel}
-                  />
-                  <SpecBox
-                    icon={<Settings2 />}
-                    label="Motorizare"
-                    value={data.specs.engine}
-                  />
-                  <SpecBox
-                    icon={<Settings2 className="rotate-90" />}
-                    label="Transmisie"
-                    value={data.specs.transmission}
-                  />
-                </div>
-
-                {/* Descriere */}
-                <div className="mt-12 pt-12 border-t border-white/10">
-                  <h3 className="text-xl font-bold mb-4">Descriere Vânzător</h3>
-                  <div className="bg-black/20 rounded-2xl p-6 md:p-8 backdrop-blur-sm border border-white/5">
-                    <p className="whitespace-pre-line text-white/80 leading-relaxed font-light">
-                      {data.description || "Nu există descriere disponibilă."}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            {hasData && (
+              <button
+                onClick={handleReset}
+                className="text-[13px] font-medium text-[#424245] hover:text-[#1D1D1F] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-black/5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            )}
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center text-[11px] font-semibold text-white shadow-sm">
+              JD
             </div>
           </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        <div className="text-center mb-10">
+          <h1 className="text-[40px] font-semibold tracking-[-0.02em] text-[#1D1D1F] mb-2">
+            Compare Vehicles
+          </h1>
+          <p className="text-[17px] text-[#86868B] font-normal">
+            Side-by-side analysis to find your perfect match
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+          <InputCard
+            label="Vehicle A"
+            url={urlA}
+            setUrl={setUrlA}
+            onSearch={() => fetchCar(urlA, "A")}
+            loading={loadingA}
+            error={errorA}
+            hasData={!!dataA}
+            activeData={dataA}
+          />
+          <InputCard
+            label="Vehicle B"
+            url={urlB}
+            setUrl={setUrlB}
+            onSearch={() => fetchCar(urlB, "B")}
+            loading={loadingB}
+            error={errorB}
+            hasData={!!dataB}
+            activeData={dataB}
+          />
+        </div>
+
+        {hasData ? (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <VehicleCard data={dataA} label="A" color="#007AFF" />
+              <VehicleCard data={dataB} label="B" color="#34C759" />
+            </div>
+
+            <div className="bg-white rounded-[20px] shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-black/4 overflow-hidden">
+              <div className="px-6 py-5 border-b border-black/4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[17px] font-semibold text-[#1D1D1F]">
+                    Technical Specifications
+                  </h3>
+                  <p className="text-[13px] text-[#86868B] mt-0.5">
+                    Detailed comparison of key metrics
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
+                  <Settings2 className="w-5 h-5 text-[#86868B]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 border-b border-black/4 bg-[#FAFAFA]">
+                <div className="col-span-4 py-3 px-6">
+                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
+                    Specification
+                  </span>
+                </div>
+                <div className="col-span-4 py-3 px-6 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#007AFF]" />
+                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
+                    Vehicle A
+                  </span>
+                </div>
+                <div className="col-span-4 py-3 px-6 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#34C759]" />
+                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
+                    Vehicle B
+                  </span>
+                </div>
+              </div>
+
+              <div className="divide-y divide-black/4">
+                <SpecRow
+                  icon={<DollarSign />}
+                  iconBg="bg-[#34C759]/10"
+                  iconColor="text-[#34C759]"
+                  label="Price"
+                  valA={dataA?.price}
+                  valB={dataB?.price}
+                  highlight
+                />
+                <SpecRow
+                  icon={<Calendar />}
+                  iconBg="bg-[#007AFF]/10"
+                  iconColor="text-[#007AFF]"
+                  label="Year"
+                  valA={dataA?.specs.year}
+                  valB={dataB?.specs.year}
+                />
+                <SpecRow
+                  icon={<Gauge />}
+                  iconBg="bg-[#AF52DE]/10"
+                  iconColor="text-[#AF52DE]"
+                  label="Mileage"
+                  valA={dataA?.specs.mileage}
+                  valB={dataB?.specs.mileage}
+                />
+                <SpecRow
+                  icon={<Zap />}
+                  iconBg="bg-[#FF9500]/10"
+                  iconColor="text-[#FF9500]"
+                  label="Power"
+                  valA={dataA?.specs.power}
+                  valB={dataB?.specs.power}
+                />
+                <SpecRow
+                  icon={<Cog />}
+                  iconBg="bg-[#636366]/10"
+                  iconColor="text-[#636366]"
+                  label="Engine"
+                  valA={dataA?.specs.engine}
+                  valB={dataB?.specs.engine}
+                />
+                <SpecRow
+                  icon={<Droplets />}
+                  iconBg="bg-[#FF3B30]/10"
+                  iconColor="text-[#FF3B30]"
+                  label="Fuel"
+                  valA={dataA?.specs.fuel}
+                  valB={dataB?.specs.fuel}
+                />
+                <SpecRow
+                  icon={<Settings2 />}
+                  iconBg="bg-[#5856D6]/10"
+                  iconColor="text-[#5856D6]"
+                  label="Transmission"
+                  valA={dataA?.specs.transmission}
+                  valB={dataB?.specs.transmission}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <DescriptionCard
+                label="Vehicle A"
+                description={dataA?.description}
+                color="#007AFF"
+              />
+              <DescriptionCard
+                label="Vehicle B"
+                description={dataB?.description}
+                color="#34C759"
+              />
+            </div>
+          </div>
+        ) : (
+          <EmptyState />
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
-// Componenta pentru Căsuțele de Specificații (Empty State inclus)
-function SpecBox({
-  icon,
+function InputCard({
   label,
-  value,
+  url,
+  setUrl,
+  onSearch,
+  loading,
+  error,
+  hasData,
+  activeData,
 }: {
-  icon: React.ReactNode;
   label: string;
-  value?: string;
+  url: string;
+  setUrl: (url: string) => void;
+  onSearch: () => void;
+  loading: boolean;
+  error: string;
+  hasData: boolean;
+  activeData: CarData | null;
 }) {
-  const isEmpty = !value || value.trim() === "";
+  if (hasData && activeData) {
+    return (
+      <div className="bg-white rounded-2xl border border-black/4 p-4 flex items-center gap-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+        <div className="w-14 h-14 rounded-xl bg-[#F5F5F7] overflow-hidden shrink-0">
+          {activeData.images?.[0] ? (
+            <img
+              src={activeData.images[0] || "/placeholder.svg"}
+              className="w-full h-full object-cover"
+              alt={activeData.title}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Car className="w-6 h-6 text-[#86868B]" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
+              {label}
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" />
+          </div>
+          <p className="font-semibold text-[15px] text-[#1D1D1F] truncate leading-tight">
+            {activeData.title}
+          </p>
+          <p className="text-[13px] text-[#007AFF] font-medium mt-0.5">
+            {activeData.price}
+          </p>
+        </div>
+        <button
+          onClick={() => window.open(url, "_blank")}
+          className="w-10 h-10 flex items-center justify-center hover:bg-[#F5F5F7] rounded-full text-[#86868B] hover:text-[#1D1D1F] transition-colors"
+        >
+          <ArrowUpRight className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`
-      relative p-4 rounded-2xl border transition-all duration-300
-      ${
-        isEmpty
-          ? "bg-white/5 border-white/5 text-white/30"
-          : "bg-white/10 border-white/20 hover:bg-white/20 text-white"
-      }
-    `}
-    >
-      <div className={`mb-2 ${isEmpty ? "opacity-30" : "text-blue-400"}`}>
-        {icon}
+    <div className="bg-white rounded-2xl border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:ring-2 focus-within:ring-[#007AFF]/20 focus-within:border-[#007AFF]/30 transition-all">
+      <div className="relative flex items-center h-14 px-4">
+        <div className="text-[#86868B] mr-3">
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-[#007AFF]" />
+          ) : (
+            <Search className="w-5 h-5" />
+          )}
+        </div>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onSearch()}
+          placeholder={`Paste ${label} URL...`}
+          className="flex-1 bg-transparent outline-none text-[#1D1D1F] text-[15px] placeholder:text-[#86868B]"
+        />
+        <button
+          onClick={onSearch}
+          disabled={loading || !url}
+          className="bg-[#007AFF] text-white px-5 py-2 rounded-full text-[13px] font-semibold hover:bg-[#0066CC] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Fetch
+        </button>
       </div>
-      <p className="text-xs uppercase tracking-wider font-semibold opacity-60 mb-1">
-        {label}
-      </p>
-      <p className="text-lg md:text-xl font-bold truncate">
-        {isEmpty ? "—" : value}
+      {error && (
+        <div className="px-4 pb-3 text-[13px] text-[#FF3B30] flex items-center gap-1.5">
+          <Info className="w-4 h-4" /> {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VehicleCard({
+  data,
+  label,
+  color,
+}: {
+  data: CarData | null;
+  label: string;
+  color: string;
+}) {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  if (!data) {
+    return (
+      <div className="bg-white rounded-[20px] border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] h-[480px] flex flex-col items-center justify-center text-[#86868B]">
+        <div className="w-20 h-20 rounded-full bg-[#F5F5F7] flex items-center justify-center mb-5">
+          <Plus className="w-8 h-8 text-[#C7C7CC]" />
+        </div>
+        <span className="font-semibold text-[17px] text-[#1D1D1F] mb-1">
+          Add Vehicle {label}
+        </span>
+        <span className="text-[15px] text-[#86868B]">
+          Paste a URL above to begin
+        </span>
+      </div>
+    );
+  }
+
+  const images = data.images || [];
+  const hasMultipleImages = images.length > 1;
+
+  const nextImage = () => {
+    setCurrentImage((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImage((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <div className="bg-white rounded-[20px] border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="relative h-64 bg-[#F5F5F7] group">
+        {images.length > 0 ? (
+          <>
+            <img
+              src={images[currentImage] || "/placeholder.svg"}
+              className="w-full h-full object-cover transition-opacity duration-300"
+              alt={data.title}
+            />
+            {hasMultipleImages && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#1D1D1F]" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                >
+                  <ChevronRight className="w-5 h-5 text-[#1D1D1F]" />
+                </button>
+              </>
+            )}
+            {hasMultipleImages && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/20 backdrop-blur-sm rounded-full px-2.5 py-1.5 items-center">
+                {images.slice(0, 5).map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImage(idx)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all ${
+                      idx === currentImage ? "bg-white w-4" : "bg-white/50"
+                    }`}
+                  />
+                ))}
+                {images.length > 5 && (
+                  <span className="text-[10px] text-white/80 ml-1">
+                    +{images.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Car className="w-16 h-16 text-[#D1D1D6]" />
+          </div>
+        )}
+        <div className="absolute top-4 left-4 flex gap-2">
+          <span
+            className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white shadow-lg"
+            style={{ backgroundColor: color }}
+          >
+            {label}
+          </span>
+        </div>
+        <div className="absolute top-4 right-4">
+          <span className="bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-[11px] font-semibold text-[#1D1D1F] shadow-lg flex items-center gap-1.5">
+            <MapPin className="w-3 h-3" />
+            {data.location}
+          </span>
+        </div>
+      </div>
+
+      {images.length > 1 && (
+        <div className="px-4 py-3 bg-[#FAFAFA] border-b border-black/4 overflow-x-auto">
+          <div className="flex gap-2">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentImage(idx)}
+                className={`w-14 h-14 rounded-lg overflow-hidden shrink-0 transition-all ${
+                  idx === currentImage
+                    ? "ring-2 ring-[#007AFF] ring-offset-1"
+                    : "opacity-60 hover:opacity-100"
+                }`}
+              >
+                <img
+                  src={img || "/placeholder.svg"}
+                  alt={`View ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="p-6">
+        <h2 className="text-[20px] font-semibold text-[#1D1D1F] leading-tight mb-2 line-clamp-2">
+          {data.title}
+        </h2>
+
+        {data.phoneNumber && (
+          <div className="flex items-center gap-1.5 text-[13px] text-[#86868B] mb-4">
+            <Phone className="w-3.5 h-3.5" />
+            {data.phoneNumber}
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-black/4">
+          <p className="text-[11px] uppercase font-semibold text-[#86868B] tracking-wide mb-1">
+            Asking Price
+          </p>
+          <p className="text-[32px] font-semibold text-[#1D1D1F] tracking-[-0.02em]">
+            {data.price}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SpecRow({
+  icon,
+  iconBg,
+  iconColor,
+  label,
+  valA,
+  valB,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  valA?: string;
+  valB?: string;
+  highlight?: boolean;
+}) {
+  const emptyA = !valA || valA === "N/A";
+  const emptyB = !valB || valB === "N/A";
+
+  return (
+    <div className="grid grid-cols-12 hover:bg-[#F5F5F7]/50 transition-colors">
+      <div className="col-span-4 py-4 px-6 flex items-center gap-3">
+        <div
+          className={`w-8 h-8 rounded-lg ${iconBg} ${iconColor} flex items-center justify-center`}
+        >
+          {React.cloneElement(icon as React.ReactElement)}
+        </div>
+        <span className="text-[13px] font-medium text-[#1D1D1F]">{label}</span>
+      </div>
+      <div
+        className={`col-span-4 py-4 px-6 flex items-center ${
+          highlight ? "text-[20px] font-semibold" : "text-[15px] font-medium"
+        } ${emptyA ? "text-[#C7C7CC]" : "text-[#1D1D1F]"}`}
+      >
+        {emptyA ? "—" : valA}
+      </div>
+      <div
+        className={`col-span-4 py-4 px-6 flex items-center ${
+          highlight ? "text-[20px] font-semibold" : "text-[15px] font-medium"
+        } ${emptyB ? "text-[#C7C7CC]" : "text-[#1D1D1F]"}`}
+      >
+        {emptyB ? "—" : valB}
+      </div>
+    </div>
+  );
+}
+
+function DescriptionCard({
+  label,
+  description,
+  color,
+}: {
+  label: string;
+  description?: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-[20px] border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div
+          className="w-3 h-3 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <h4 className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
+          {label} Description
+        </h4>
+      </div>
+      <p className="text-[15px] text-[#424245] leading-relaxed whitespace-pre-line line-clamp-8">
+        {description || "No description available."}
       </p>
     </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="py-16">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="h-72 bg-white rounded-[20px] border border-dashed border-[#D1D1D6] flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mb-4">
+            <Car className="w-8 h-8 text-[#C7C7CC]" />
+          </div>
+          <span className="text-[15px] font-medium text-[#86868B]">
+            Vehicle Cards
+          </span>
+          <span className="text-[13px] text-[#C7C7CC] mt-1">
+            Add URLs to compare
+          </span>
+        </div>
+        <div className="h-72 bg-white rounded-[20px] border border-dashed border-[#D1D1D6] flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mb-4">
+            <BarChart3 className="w-8 h-8 text-[#C7C7CC]" />
+          </div>
+          <span className="text-[15px] font-medium text-[#86868B]">
+            Specifications
+          </span>
+          <span className="text-[13px] text-[#C7C7CC] mt-1">
+            Side-by-side metrics
+          </span>
+        </div>
+        <div className="h-72 bg-white rounded-[20px] border border-dashed border-[#D1D1D6] flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mb-4">
+            <Settings2 className="w-8 h-8 text-[#C7C7CC]" />
+          </div>
+          <span className="text-[15px] font-medium text-[#86868B]">
+            Details
+          </span>
+          <span className="text-[13px] text-[#C7C7CC] mt-1">
+            Full descriptions
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BarChart3(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 3v18h18" />
+      <path d="M18 17V9" />
+      <path d="M13 17V5" />
+      <path d="M8 17v-3" />
+    </svg>
   );
 }
