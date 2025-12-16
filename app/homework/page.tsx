@@ -1,29 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  Search,
   Calendar,
   Gauge,
   MapPin,
-  Settings2,
   Phone,
   ArrowUpRight,
-  Car,
+  CarFront,
   Zap,
-  RefreshCw,
-  Plus,
   Loader2,
-  Info,
+  AlertCircle,
   ChevronLeft,
   ChevronRight,
   DollarSign,
-  Cog,
-  Droplets,
+  Fuel,
+  GitCompare,
+  CheckCircle2,
+  ImageIcon,
+  RefreshCw,
 } from "lucide-react";
-import React from "react";
+import { cn } from "@/lib/utils";
 
-interface CarSpecs {
+type CarSpecs = {
   model: string;
   power: string;
   bodyType: string;
@@ -33,9 +32,9 @@ interface CarSpecs {
   fuel: string;
   engine: string;
   transmission: string;
-}
+};
 
-interface CarData {
+type CarData = {
   title: string;
   price: string;
   location: string;
@@ -43,9 +42,9 @@ interface CarData {
   description: string;
   images: string[];
   phoneNumber: string;
-}
+};
 
-export default function AppleDashboard() {
+export default function VehicleComparePro() {
   const [urlA, setUrlA] = useState("");
   const [urlB, setUrlB] = useState("");
   const [loadingA, setLoadingA] = useState(false);
@@ -92,479 +91,381 @@ export default function AppleDashboard() {
   const hasData = dataA || dataB;
 
   return (
-    <div className="min-h-screen bg-[#F5f5f7] text-[#1D1D1F] antialiased">
-      <header className="sticky top-0 z-50 bg-[#FBFBFD]/80 backdrop-blur-2xl border-b border-black/5">
-        <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-linear-to-br from-[#1D1D1F] to-[#424245] text-white rounded-[10px] flex items-center justify-center font-semibold text-[11px] tracking-tight shadow-sm">
-              CP
-            </div>
-            <span className="font-semibold text-[15px] tracking-[-0.01em]">
-              Comparator Pro
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {hasData && (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-indigo-100 selection:text-indigo-900 flex items-center justify-center relative">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24 h-full w-full">
+        <div className="relative mb-12">
+          {hasData && (
+            <div className="sticky top-0 z-10">
               <button
                 onClick={handleReset}
-                className="text-[13px] font-medium text-[#424245] hover:text-[#1D1D1F] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-black/5"
+                className="flex items-center mb-4 gap-2.5 px-6 py-2.5 rounded-full text-sm font-medium text-foreground bg-muted/60 hover:bg-muted transition-all active:scale-95 shadow-sm"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Reset
+                <RefreshCw className="w-4 h-4" />
+                <span className="hidden sm:inline">New Comparison</span>
               </button>
-            )}
-            <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center text-[11px] font-semibold text-white shadow-sm">
-              JD
+            </div>
+          )}
+          {!hasData && (
+            <div className="text-center mb-16 space-y-3">
+              <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-neutral-900">
+                Compare your next ride.
+              </h1>
+              <p className="text-lg text-neutral-500 max-w-2xl mx-auto text-pretty mt-8">
+                Paste two URLs below to generate a side-by-side technical and
+                visual comparison instantly.
+              </p>
+            </div>
+          )}
+
+          <div className="bg-white rounded-3xl shadow-[0_0_16px_rgba(0,0,0,0.025)]">
+            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 divide-zinc-200 relative">
+              <div className="flex-1 p-6 relative group">
+                <UrlInput
+                  side="Left"
+                  url={urlA}
+                  setUrl={setUrlA}
+                  loading={loadingA}
+                  onSearch={() => fetchCar(urlA, "A")}
+                  activeData={dataA}
+                  error={errorA}
+                  color="indigo"
+                />
+              </div>
+
+              {!hasData && (
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 hidden md:flex">
+                  <div className="size-40 bg-zinc-900 rounded-full flex items-center justify-center border-8 border-zinc-50">
+                    <span className="text-7xl font-black text-white">VS</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 p-6 relative group">
+                <UrlInput
+                  side="Right"
+                  url={urlB}
+                  setUrl={setUrlB}
+                  loading={loadingB}
+                  onSearch={() => fetchCar(urlB, "B")}
+                  activeData={dataB}
+                  error={errorB}
+                  color="rose"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="text-center mb-10">
-          <h1 className="text-[40px] font-semibold tracking-[-0.02em] text-[#1D1D1F] mb-2">
-            Compare Vehicles
-          </h1>
-          <p className="text-[17px] text-[#86868B] font-normal">
-            Side-by-side analysis to find your perfect match
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-          <InputCard
-            label="Vehicle A"
-            url={urlA}
-            setUrl={setUrlA}
-            onSearch={() => fetchCar(urlA, "A")}
-            loading={loadingA}
-            error={errorA}
-            hasData={!!dataA}
-            activeData={dataA}
-          />
-          <InputCard
-            label="Vehicle B"
-            url={urlB}
-            setUrl={setUrlB}
-            onSearch={() => fetchCar(urlB, "B")}
-            loading={loadingB}
-            error={errorB}
-            hasData={!!dataB}
-            activeData={dataB}
-          />
-        </div>
-
-        {hasData ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <VehicleCard data={dataA} label="A" color="#007AFF" />
-              <VehicleCard data={dataB} label="B" color="#34C759" />
+        {hasData && (
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <CarHeaderCard data={dataA} label="Vehicle A" color="indigo" />
+              <CarHeaderCard data={dataB} label="Vehicle B" color="rose" />
             </div>
 
-            <div className="bg-white rounded-[20px] shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-black/4 overflow-hidden">
-              <div className="px-6 py-5 border-b border-black/4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-[17px] font-semibold text-[#1D1D1F]">
-                    Technical Specifications
-                  </h3>
-                  <p className="text-[13px] text-[#86868B] mt-0.5">
-                    Detailed comparison of key metrics
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
-                  <Settings2 className="w-5 h-5 text-[#86868B]" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-12 border-b border-black/4 bg-[#FAFAFA]">
-                <div className="col-span-4 py-3 px-6">
-                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
-                    Specification
-                  </span>
-                </div>
-                <div className="col-span-4 py-3 px-6 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#007AFF]" />
-                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
-                    Vehicle A
-                  </span>
-                </div>
-                <div className="col-span-4 py-3 px-6 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#34C759]" />
-                  <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
-                    Vehicle B
-                  </span>
-                </div>
-              </div>
-
-              <div className="divide-y divide-black/4">
-                <SpecRow
-                  icon={<DollarSign />}
-                  iconBg="bg-[#34C759]/10"
-                  iconColor="text-[#34C759]"
+            <div className="bg-white rounded-3xl shadow-[0_0_16px_rgba(0,0,0,0.025)] overflow-hidden">
+              <div className="divide-y divide-zinc-100">
+                <CompareRow
                   label="Price"
                   valA={dataA?.price}
                   valB={dataB?.price}
+                  icon={<DollarSign className="w-4 h-4" />}
                   highlight
                 />
-                <SpecRow
-                  icon={<Calendar />}
-                  iconBg="bg-[#007AFF]/10"
-                  iconColor="text-[#007AFF]"
+                <CompareRow
                   label="Year"
                   valA={dataA?.specs.year}
                   valB={dataB?.specs.year}
+                  icon={<Calendar className="w-4 h-4" />}
                 />
-                <SpecRow
-                  icon={<Gauge />}
-                  iconBg="bg-[#AF52DE]/10"
-                  iconColor="text-[#AF52DE]"
+                <CompareRow
                   label="Mileage"
                   valA={dataA?.specs.mileage}
                   valB={dataB?.specs.mileage}
+                  icon={<Gauge className="w-4 h-4" />}
                 />
-                <SpecRow
-                  icon={<Zap />}
-                  iconBg="bg-[#FF9500]/10"
-                  iconColor="text-[#FF9500]"
+                <CompareRow
                   label="Power"
                   valA={dataA?.specs.power}
                   valB={dataB?.specs.power}
+                  icon={<Zap className="w-4 h-4" />}
                 />
-                <SpecRow
-                  icon={<Cog />}
-                  iconBg="bg-[#636366]/10"
-                  iconColor="text-[#636366]"
+                <CompareRow
+                  label="Fuel Type"
+                  valA={dataA?.specs.fuel}
+                  valB={dataB?.specs.fuel}
+                  icon={<Fuel className="w-4 h-4" />}
+                />
+                <CompareRow
                   label="Engine"
                   valA={dataA?.specs.engine}
                   valB={dataB?.specs.engine}
+                  icon={<CarFront className="w-4 h-4" />}
                 />
-                <SpecRow
-                  icon={<Droplets />}
-                  iconBg="bg-[#FF3B30]/10"
-                  iconColor="text-[#FF3B30]"
-                  label="Fuel"
-                  valA={dataA?.specs.fuel}
-                  valB={dataB?.specs.fuel}
-                />
-                <SpecRow
-                  icon={<Settings2 />}
-                  iconBg="bg-[#5856D6]/10"
-                  iconColor="text-[#5856D6]"
+                <CompareRow
                   label="Transmission"
                   valA={dataA?.specs.transmission}
                   valB={dataB?.specs.transmission}
+                  icon={<GitCompare className="w-4 h-4" />}
+                />
+                <CompareRow
+                  label="Body Type"
+                  valA={dataA?.specs.bodyType}
+                  valB={dataB?.specs.bodyType}
+                  icon={<CarFront className="w-4 h-4" />}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <DescriptionCard
-                label="Vehicle A"
-                description={dataA?.description}
-                color="#007AFF"
-              />
-              <DescriptionCard
-                label="Vehicle B"
-                description={dataB?.description}
-                color="#34C759"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <DescriptionBlock data={dataA} />
+              <DescriptionBlock data={dataB} />
             </div>
           </div>
-        ) : (
-          <EmptyState />
         )}
       </main>
     </div>
   );
 }
 
-function InputCard({
-  label,
+function UrlInput({
+  side,
   url,
   setUrl,
-  onSearch,
   loading,
-  error,
-  hasData,
+  onSearch,
   activeData,
+  error,
+  color,
 }: {
-  label: string;
+  side: string;
   url: string;
-  setUrl: (url: string) => void;
-  onSearch: () => void;
+  setUrl: (s: string) => void;
   loading: boolean;
-  error: string;
-  hasData: boolean;
+  onSearch: () => void;
   activeData: CarData | null;
+  error: string;
+  color: "indigo" | "rose";
 }) {
-  if (hasData && activeData) {
+  const isIndigo = color === "indigo";
+
+  if (activeData) {
     return (
-      <div className="bg-white rounded-2xl border border-black/4 p-4 flex items-center gap-4 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-        <div className="w-14 h-14 rounded-xl bg-[#F5F5F7] overflow-hidden shrink-0">
-          {activeData.images?.[0] ? (
-            <img
-              src={activeData.images[0] || "/placeholder.svg"}
-              className="w-full h-full object-cover"
-              alt={activeData.title}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Car className="w-6 h-6 text-[#86868B]" />
-            </div>
-          )}
+      <div className="flex items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+        <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-zinc-200">
+          <img
+            src={activeData.images?.[0] || "/placeholder.svg"}
+            className="w-full h-full object-cover"
+            alt="Thumbnail"
+          />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
-              {label}
+        <div className="min-w-0 flex-1 max-w-xs">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isIndigo
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "bg-rose-100 text-rose-700"
+              }`}
+            >
+              Vehicle {side === "Left" ? "A" : "B"}
             </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" />
+            <CheckCircle2 className="w-4 h-4 text-green-500" />
           </div>
-          <p className="font-semibold text-[15px] text-[#1D1D1F] truncate leading-tight">
+          <p className="font-medium text-zinc-900 truncate ">
             {activeData.title}
           </p>
-          <p className="text-[13px] text-[#007AFF] font-medium mt-0.5">
-            {activeData.price}
-          </p>
         </div>
-        <button
-          onClick={() => window.open(url, "_blank")}
-          className="w-10 h-10 flex items-center justify-center hover:bg-[#F5F5F7] rounded-full text-[#86868B] hover:text-[#1D1D1F] transition-colors"
-        >
-          <ArrowUpRight className="w-5 h-5" />
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:ring-2 focus-within:ring-[#007AFF]/20 focus-within:border-[#007AFF]/30 transition-all">
-      <div className="relative flex items-center h-14 px-4">
-        <div className="text-[#86868B] mr-3">
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-[#007AFF]" />
-          ) : (
-            <Search className="w-5 h-5" />
+    <div className="space-y-4">
+      <p
+        className={cn(
+          "text-xs font-bold uppercase tracking-wider text-neutral-400 w-full",
+          side === "Right" ? "text-right" : "text-left"
+        )}
+      >
+        Vehicle {side}
+      </p>
+      <div className="flex gap-2">
+        <div className="relative flex-1 group-focus-within:ring-2 ring-indigo-500/20 rounded-lg transition-all">
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSearch()}
+            placeholder="Paste listing URL..."
+            disabled={loading}
+            className={cn(
+              "w-full bg-neutral-50 border-none text-sm px-4 py-3 rounded-lg transition-colors",
+              side === "Right" ? "text-right" : "text-left"
+            )}
+          />
+          {loading && (
+            <div className="absolute right-3 top-3">
+              <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+            </div>
           )}
         </div>
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          placeholder={`Paste ${label} URL...`}
-          className="flex-1 bg-transparent outline-none text-[#1D1D1F] text-[15px] placeholder:text-[#86868B]"
-        />
-        <button
-          onClick={onSearch}
-          disabled={loading || !url}
-          className="bg-[#007AFF] text-white px-5 py-2 rounded-full text-[13px] font-semibold hover:bg-[#0066CC] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Fetch
-        </button>
       </div>
       {error && (
-        <div className="px-4 pb-3 text-[13px] text-[#FF3B30] flex items-center gap-1.5">
-          <Info className="w-4 h-4" /> {error}
+        <div className="text-xs text-red-500 flex items-center gap-1.5 bg-red-50 p-2 rounded-md">
+          <AlertCircle className="w-3.5 h-3.5" /> {error}
         </div>
       )}
     </div>
   );
 }
 
-function VehicleCard({
+function CarHeaderCard({
   data,
   label,
   color,
 }: {
   data: CarData | null;
   label: string;
-  color: string;
+  color: "indigo" | "rose";
 }) {
-  const [currentImage, setCurrentImage] = useState(0);
-
-  if (!data) {
-    return (
-      <div className="bg-white rounded-[20px] border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] h-[480px] flex flex-col items-center justify-center text-[#86868B]">
-        <div className="w-20 h-20 rounded-full bg-[#F5F5F7] flex items-center justify-center mb-5">
-          <Plus className="w-8 h-8 text-[#C7C7CC]" />
-        </div>
-        <span className="font-semibold text-[17px] text-[#1D1D1F] mb-1">
-          Add Vehicle {label}
-        </span>
-        <span className="text-[15px] text-[#86868B]">
-          Paste a URL above to begin
-        </span>
-      </div>
-    );
-  }
+  const [idx, setIdx] = useState(0);
+  if (!data) return null;
 
   const images = data.images || [];
-  const hasMultipleImages = images.length > 1;
+  const next = () => setIdx((prev) => (prev + 1) % images.length);
+  const prev = () =>
+    setIdx((prev) => (prev - 1 + images.length) % images.length);
 
-  const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImage((prev) => (prev - 1 + images.length) % images.length);
-  };
+  const isIndigo = color === "indigo";
 
   return (
-    <div className="bg-white rounded-[20px] border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] overflow-hidden">
-      <div className="relative h-64 bg-[#F5F5F7] group">
+    <div className="flex flex-col gap-4">
+      {/* Image Stage */}
+      <div className="group relative aspect-4/3 rounded-3xl overflow-hidden bg-zinc-100 shadow-[0_0_16px_rgba(0,0,0,0.025)]">
         {images.length > 0 ? (
-          <>
-            <img
-              src={images[currentImage] || "/placeholder.svg"}
-              className="w-full h-full object-cover transition-opacity duration-300"
-              alt={data.title}
-            />
-            {hasMultipleImages && (
-              <>
-                <button
-                  onClick={prevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#1D1D1F]" />
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-                >
-                  <ChevronRight className="w-5 h-5 text-[#1D1D1F]" />
-                </button>
-              </>
-            )}
-            {hasMultipleImages && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/20 backdrop-blur-sm rounded-full px-2.5 py-1.5 items-center">
-                {images.slice(0, 5).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentImage(idx)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
-                      idx === currentImage ? "bg-white w-4" : "bg-white/50"
-                    }`}
-                  />
-                ))}
-                {images.length > 5 && (
-                  <span className="text-[10px] text-white/80 ml-1">
-                    +{images.length - 5}
-                  </span>
-                )}
-              </div>
-            )}
-          </>
+          <img
+            src={images[idx]}
+            alt={data.title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Car className="w-16 h-16 text-[#D1D1D6]" />
+          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-300">
+            <ImageIcon className="w-12 h-12 mb-2" />
+            <span className="text-sm">No Images</span>
           </div>
         )}
-        <div className="absolute top-4 left-4 flex gap-2">
+
+        <div className="absolute top-4 left-4">
           <span
-            className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white shadow-lg"
-            style={{ backgroundColor: color }}
+            className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider text-white shadow-lg ${
+              isIndigo ? "bg-indigo-600" : "bg-rose-600"
+            }`}
           >
             {label}
           </span>
         </div>
-        <div className="absolute top-4 right-4">
-          <span className="bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-[11px] font-semibold text-[#1D1D1F] shadow-lg flex items-center gap-1.5">
-            <MapPin className="w-3 h-3" />
-            {data.location}
-          </span>
-        </div>
+
+        {images.length > 1 && (
+          <>
+            <div className="absolute inset-0 flex items-center justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={prev}
+                className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm flex items-center justify-center transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={next}
+                className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm flex items-center justify-center transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {images.slice(0, 5).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full shadow-sm transition-all ${
+                    i === idx ? "w-6 bg-white" : "w-1.5 bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {images.length > 1 && (
-        <div className="px-4 py-3 bg-[#FAFAFA] border-b border-black/4 overflow-x-auto">
-          <div className="flex gap-2">
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentImage(idx)}
-                className={`w-14 h-14 rounded-lg overflow-hidden shrink-0 transition-all ${
-                  idx === currentImage
-                    ? "ring-2 ring-[#007AFF] ring-offset-1"
-                    : "opacity-60 hover:opacity-100"
-                }`}
-              >
-                <img
-                  src={img || "/placeholder.svg"}
-                  alt={`View ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+      {/* Primary Info */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-2xl font-bold text-zinc-900 leading-tight">
+            {data.title}
+          </h2>
+          <div className="flex items-center gap-2 mt-2 text-sm text-zinc-500 font-medium">
+            <MapPin className="w-4 h-4" />
+            {data.location}
           </div>
         </div>
-      )}
-      <div className="p-6">
-        <h2 className="text-[20px] font-semibold text-[#1D1D1F] leading-tight mb-2 line-clamp-2">
-          {data.title}
-        </h2>
 
-        {data.phoneNumber && (
-          <div className="flex items-center gap-1.5 text-[13px] text-[#86868B] mb-4">
-            <Phone className="w-3.5 h-3.5" />
-            {data.phoneNumber}
+        <div className="p-4 bg-white rounded-3xl shadow-[0_0_16px_rgba(0,0,0,0.025)] flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase font-bold text-zinc-400 tracking-wider">
+              Asking Price
+            </p>
+            <p className="text-2xl font-bold text-zinc-900">{data.price}</p>
           </div>
-        )}
-
-        <div className="pt-4 border-t border-black/4">
-          <p className="text-[11px] uppercase font-semibold text-[#86868B] tracking-wide mb-1">
-            Asking Price
-          </p>
-          <p className="text-[32px] font-semibold text-[#1D1D1F] tracking-[-0.02em]">
-            {data.price}
-          </p>
+          <button
+            onClick={() => window.open(`tel:${data.phoneNumber}`)}
+            className="w-10 h-10 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 flex items-center justify-center transition-colors"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function SpecRow({
-  icon,
-  iconBg,
-  iconColor,
+function CompareRow({
   label,
   valA,
   valB,
-  highlight,
+  icon,
+  highlight = false,
 }: {
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
   label: string;
   valA?: string;
   valB?: string;
+  icon: React.ReactNode;
   highlight?: boolean;
 }) {
   const emptyA = !valA || valA === "N/A";
   const emptyB = !valB || valB === "N/A";
 
   return (
-    <div className="grid grid-cols-12 hover:bg-[#F5F5F7]/50 transition-colors">
-      <div className="col-span-4 py-4 px-6 flex items-center gap-3">
-        <div
-          className={`w-8 h-8 rounded-lg ${iconBg} ${iconColor} flex items-center justify-center`}
-        >
-          {React.cloneElement(icon as React.ReactElement)}
-        </div>
-        <span className="text-[13px] font-medium text-[#1D1D1F]">{label}</span>
-      </div>
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center hover:bg-zinc-50 transition-colors py-4 px-6 group">
       <div
-        className={`col-span-4 py-4 px-6 flex items-center ${
-          highlight ? "text-[20px] font-semibold" : "text-[15px] font-medium"
-        } ${emptyA ? "text-[#C7C7CC]" : "text-[#1D1D1F]"}`}
+        className={`text-right pr-6 ${
+          highlight ? "text-lg font-bold" : "text-sm font-medium"
+        } ${emptyA ? "text-zinc-300" : "text-zinc-900"}`}
       >
         {emptyA ? "—" : valA}
       </div>
+
+      <div className="flex flex-col items-center justify-center w-32 shrink-0">
+        <div className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-400 group-hover:text-indigo-600 group-hover:border-indigo-200 transition-colors shadow-sm mb-1">
+          {icon}
+        </div>
+        <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+          {label}
+        </span>
+      </div>
+
       <div
-        className={`col-span-4 py-4 px-6 flex items-center ${
-          highlight ? "text-[20px] font-semibold" : "text-[15px] font-medium"
-        } ${emptyB ? "text-[#C7C7CC]" : "text-[#1D1D1F]"}`}
+        className={`text-left pl-6 ${
+          highlight ? "text-lg font-bold" : "text-sm font-medium"
+        } ${emptyB ? "text-zinc-300" : "text-zinc-900"}`}
       >
         {emptyB ? "—" : valB}
       </div>
@@ -572,93 +473,17 @@ function SpecRow({
   );
 }
 
-function DescriptionCard({
-  label,
-  description,
-  color,
-}: {
-  label: string;
-  description?: string;
-  color: string;
-}) {
+function DescriptionBlock({ data }: { data: CarData | null }) {
+  if (!data) return null;
   return (
-    <div className="bg-white rounded-[20px] border border-black/4 shadow-[0_2px_20px_rgba(0,0,0,0.04)] p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div
-          className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-        <h4 className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
-          {label} Description
-        </h4>
-      </div>
-      <p className="text-[15px] text-[#424245] leading-relaxed whitespace-pre-line line-clamp-8">
-        {description || "No description available."}
+    <div className="bg-white rounded-3xl p-6 shadow-[0_0_16px_rgba(0,0,0,0.025)]">
+      <h4 className="font-semibold text-zinc-900 mb-4 flex items-center gap-2">
+        <ArrowUpRight className="w-4 h-4 text-zinc-400" />
+        Seller Description
+      </h4>
+      <p className="text-sm text-zinc-600 leading-relaxed whitespace-pre-wrap">
+        {data.description || "No description provided."}
       </p>
     </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="py-16">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="h-72 bg-white rounded-[20px] border border-dashed border-[#D1D1D6] flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mb-4">
-            <Car className="w-8 h-8 text-[#C7C7CC]" />
-          </div>
-          <span className="text-[15px] font-medium text-[#86868B]">
-            Vehicle Cards
-          </span>
-          <span className="text-[13px] text-[#C7C7CC] mt-1">
-            Add URLs to compare
-          </span>
-        </div>
-        <div className="h-72 bg-white rounded-[20px] border border-dashed border-[#D1D1D6] flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mb-4">
-            <BarChart3 className="w-8 h-8 text-[#C7C7CC]" />
-          </div>
-          <span className="text-[15px] font-medium text-[#86868B]">
-            Specifications
-          </span>
-          <span className="text-[13px] text-[#C7C7CC] mt-1">
-            Side-by-side metrics
-          </span>
-        </div>
-        <div className="h-72 bg-white rounded-[20px] border border-dashed border-[#D1D1D6] flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mb-4">
-            <Settings2 className="w-8 h-8 text-[#C7C7CC]" />
-          </div>
-          <span className="text-[15px] font-medium text-[#86868B]">
-            Details
-          </span>
-          <span className="text-[13px] text-[#C7C7CC] mt-1">
-            Full descriptions
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BarChart3(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 3v18h18" />
-      <path d="M18 17V9" />
-      <path d="M13 17V5" />
-      <path d="M8 17v-3" />
-    </svg>
   );
 }
